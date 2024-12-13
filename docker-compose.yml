@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: igebot
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app # Привязка текущей директории к контейнеру
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      BOT_TOKEN: ${BOT_TOKEN}
+
+  db:
+    container_name: ige-db
+    image: postgres:15
+    restart: always
+    ports:
+      - "5432:5432" # Маппинг порта PostgreSQL
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
