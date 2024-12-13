@@ -1,9 +1,0 @@
--c requirements.txt
-# fastapi
-pytest
-black
-pylint
-flake8
-isort
-bandit
-mypy
