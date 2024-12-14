@@ -103,8 +103,7 @@ async def process_name(message: Message, state: FSMContext) -> None:
     await message.answer("Введите вашу фамилию:")
     await state.set_state(Registration.waiting_for_surname)
 
-
-# Хэндлер обработки фамилии
+#хэндлер обработки фамилии
 @router.message(Registration.waiting_for_surname)
 async def process_surname(message: Message, state: FSMContext) -> None:
     """Обрабатываем фамилию и завершаем регистрацию."""
@@ -112,15 +111,31 @@ async def process_surname(message: Message, state: FSMContext) -> None:
     surname = get_message_text(message).strip()
     user_data = await state.get_data()
     first_name = user_data.get("first_name")
+    user_id = get_user_id(message)
 
     async for db in get_db():
-        new_user = User(telegram_id=get_user_id(message), first_name=first_name, last_name=surname)
+        # Проверяем, существует ли пользователь
+        existing_user = await db.scalar(
+            select(User).where(User.telegram_id == user_id)
+        )
+
+        if existing_user:
+            # Если пользователь уже существует
+            await message.answer("Ты уже есть в системе!")
+            await message.answer("Добро пожаловать обратно! Вы можете продолжить работу.", reply_markup=ege_inline_kb())
+            # Устанавливаем состояние для ввода баллов ЕГЭ
+            await state.set_state(EgeScoreInput.waiting_for_subject)
+            return
+
+        # Если пользователя нет, регистрируем нового
+        new_user = User(telegram_id=user_id, first_name=first_name, last_name=surname)
         db.add(new_user)
         await db.commit()
 
     await message.answer(f"Вы успешно зарегистрированы, {first_name} {surname}!")
     await message.answer("Теперь вы можете ввести свои баллы ЕГЭ. Выберите предмет:", reply_markup=ege_inline_kb())
     await state.set_state(EgeScoreInput.waiting_for_subject)
+
 
 
 # Хэндлер для выбора предмета
